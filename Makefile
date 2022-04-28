@@ -1,3 +1,13 @@
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+CFLAGS = -Ofast
+endif
+
+ifeq ($(UNAME), Linux)
+CFLAGS = -O3
+endif
+
 all: libalign.so
 
 libalign.so: align.c
