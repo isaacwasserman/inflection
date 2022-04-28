@@ -50,6 +50,7 @@ def find_good_range(a,b):
 def augment(inputs, outputs, tags, characters):
 	temp = [(''.join(inputs[i]), ''.join(outputs[i])) for i in range(len(outputs))]
 	aligned = align.Aligner(temp).alignedpairs
+	print(aligned)
 
 	vocab = list(characters)
 	try:
