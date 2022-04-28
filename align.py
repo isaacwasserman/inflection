@@ -9,12 +9,13 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 
 # Usage:
-# Align(wordpairs) <= wordpairs is an iterable of 2-tuples
+# Align(wordpairs) <= wordpairs is an iterable of 2-tuples containing strings as iterables
 # The resulting Align.alignedpairs is a list of aligned 2-tuples
 
 # Relies on C-code in libalign.so built from align.c through ctypes.
 # Author: Mans Hulden
 # MH20151102
+# Last modified 20200422
 
 import itertools
 from ctypes import *
@@ -38,28 +39,27 @@ libalign_getpairs_advance = libalign.getpairs_advance
 libalign_getpairs_advance.restype = c_void_p
 libalign_align_init = libalign.align_init
 libalign_align_init.restype = None
-libalign_align_init_with_seed = libalign.align_init_with_seed
-libalign_align_init.restype = None
 
 class Aligner:
 
-    def __init__(self, wordpairs, align_symbol = u' ', iterations = 10, burnin = 5, lag = 1, mode = 'crp', random_seed = None):
-        s = set(u''.join((x[0] + x[1] for x in wordpairs)))
+    def __init__(self, wordpairs, align_symbol = ' ', iterations = 10, burnin = 1, lag = 1, mode = 'crp'):
+        s = set()
+        for wl, wr in wordpairs:
+            s |= {a for a in wl}
+            s |= {a for a in wr}
         self.symboltoint = dict(zip(s, range(1,len(s)+1)))
         self.inttosymbol = {v:k for k, v in self.symboltoint.items()}
         self.inttosymbol[0] = align_symbol
         ## Map stringpairs to -1 terminated integer sequences ##
         intpairs = []
         for i, o in wordpairs:
-            intin = list(map(lambda x: self.symboltoint[x], i)) + [-1]
-            intout = list(map(lambda x: self.symboltoint[x], o)) + [-1]
+            intin = [self.symboltoint[x] for x in i] + [-1]
+            intout = [self.symboltoint[x] for x in o] + [-1]
+            #intin = map(lambda x: self.symboltoint[x], i) + [-1]
+            #intout = map(lambda x: self.symboltoint[x], o) + [-1]
             intpairs.append((intin, intout))
 
-        if random_seed:
-            libalign_align_init_with_seed(random_seed)
-        else:
-            libalign_align_init()
-            
+        libalign_align_init()
         for i, o in intpairs:
             icint = (c_int * len(i))(*i)
             ocint = (c_int * len(o))(*o)
@@ -92,5 +92,5 @@ class Aligner:
                 if outints[j] == -1:
                     break
                 outstr.append(self.inttosymbol[outints[j]])
-            self.alignedpairs.append((''.join(instr), ''.join(outstr)))
+            self.alignedpairs.append((instr, outstr))
             stringpairptr = libalign_getpairs_advance(c_void_p(stringpairptr))
